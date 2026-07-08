@@ -30,6 +30,46 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.25);
             min-width: 250px;
         }
+
+        .search-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.25);
+        }
+
+        .search-box input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 150px;
+            font-size: 14px;
+        }
+
+        .search-box button {
+            padding: 8px 12px;
+            margin-left: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .search-box button:hover {
+            background-color: #0056b3;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 
@@ -37,10 +77,16 @@
 
 <div id="map"></div>
 
+<div class="search-box">
+    <input type="text" id="postcodeInput" placeholder="Voer postcode in" />
+    <button onclick="searchPostcode()">Zoeken</button>
+    <div id="searchError"></div>
+</div>
+
 <div class="info-box">
     <h3>Dichtstbijzijnde centrum</h3>
     <div id="result">
-        Klik ergens op de kaart
+        Klik ergens op de kaart of voer een postcode in
     </div>
 </div>
 
@@ -76,7 +122,6 @@ const centers = [
     { name: "VILVOORDE", postcode: "1800", lat: 50.928, lng: 4.429 },
     { name: "ZOUTLEEUW", postcode: "3440", lat: 50.835, lng: 5.103 },
     { name: "SINT-ANDRIES", postcode: "8200", lat: 51.197, lng: 3.177 }
-
 ];
 
 const map = L.map('map').setView([50.85, 4.6], 8);
@@ -119,26 +164,11 @@ function distance(lat1, lon1, lat2, lon2) {
 let clickMarker = null;
 let routeLine = null;
 
-map.on('click', function(e) {
-
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-
-    if (clickMarker) {
-        map.removeLayer(clickMarker);
-    }
-
-    if (routeLine) {
-        map.removeLayer(routeLine);
-    }
-
-    clickMarker = L.marker([lat, lng]).addTo(map);
-
+function findNearestCenter(lat, lng) {
     let nearest = null;
     let bestDistance = Number.MAX_VALUE;
 
     centers.forEach(center => {
-
         const d = distance(
             lat,
             lng,
@@ -150,8 +180,23 @@ map.on('click', function(e) {
             bestDistance = d;
             nearest = center;
         }
-
     });
+
+    return { nearest, distance: bestDistance };
+}
+
+function displayResult(lat, lng) {
+    if (clickMarker) {
+        map.removeLayer(clickMarker);
+    }
+
+    if (routeLine) {
+        map.removeLayer(routeLine);
+    }
+
+    clickMarker = L.marker([lat, lng]).addTo(map);
+
+    const { nearest, distance: bestDistance } = findNearestCenter(lat, lng);
 
     routeLine = L.polyline(
         [
@@ -166,6 +211,40 @@ map.on('click', function(e) {
         Postcode: ${nearest.postcode}<br>
         Afstand: ${bestDistance.toFixed(1)} km
     `;
+
+    map.setView([lat, lng], 10);
+}
+
+map.on('click', function(e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    displayResult(lat, lng);
+});
+
+function searchPostcode() {
+    const postcode = document.getElementById('postcodeInput').value.trim();
+    const searchError = document.getElementById('searchError');
+    searchError.innerHTML = '';
+
+    if (!postcode) {
+        searchError.innerHTML = '<div class="error">Voer een postcode in</div>';
+        return;
+    }
+
+    const foundCenter = centers.find(center => center.postcode === postcode);
+
+    if (foundCenter) {
+        displayResult(foundCenter.lat, foundCenter.lng);
+    } else {
+        searchError.innerHTML = '<div class="error">Postcode niet gevonden</div>';
+    }
+}
+
+// Allow Enter key to search
+document.getElementById('postcodeInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchPostcode();
+    }
 });
 
 </script>
