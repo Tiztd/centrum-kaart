@@ -2,50 +2,45 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Centrumkaart</title>
 
 <link rel="stylesheet"
-hrefleaflet.css"/>
-
-<style>
-html,body{
-  margin:0;
-  height:100%;
+      href="https://unpkg.com/leafletml, body {
+    margin: 0;
+    height: 100%;
 }
 
-#map{
-  width:100%;
-  height:100%;
+#map {
+    height: 100%;
+    width: 100%;
 }
 </style>
 
 </head>
+
 <body>
 
 <div id="map"></div>
 
-pkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1flet.js</script>
 
 <script>
 
-const map = L.map('map').setView(
-  [50.85,4.6],
-  8
-);
+const map = L.map('map').setView([50.85, 4.6], 8);
 
 L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   {
-    attribution:'© OpenStreetMap'
+    attribution: '&copy; OpenStreetMap'
   }
 ).addTo(map);
 
-L.marker([50.879,4.701])
-  .addTo(map)
-  .bindPopup('Leuven');
+L.marker([50.879, 4.701])
+ .addTo(map)
+ .bindPopup('Leuven');
 
 </script>
 
