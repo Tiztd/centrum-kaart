@@ -7,40 +7,41 @@
 
 <title>Centrumkaart</title>
 
-<link rel="stylesheet"
-      href="https://unpkg.com/leafletml, body {
+://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+html, body {
     margin: 0;
     height: 100%;
 }
 
 #map {
-    height: 100%;
     width: 100%;
+    height: 100%;
 }
 </style>
 
 </head>
-
 <body>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1flet.js</script>
+<script src="https://unpkg.com/leaflet@1flet.js
 
 <script>
 
 const map = L.map('map').setView([50.85, 4.6], 8);
 
 L.tileLayer(
-  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  {
-    attribution: '&copy; OpenStreetMap'
-  }
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution: '&copy; OpenStreetMap'
+    }
 ).addTo(map);
 
 L.marker([50.879, 4.701])
- .addTo(map)
- .bindPopup('Leuven');
+    .addTo(map)
+    .bindPopup('Leuven');
 
 </script>
 
