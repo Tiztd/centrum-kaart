@@ -258,14 +258,23 @@ async function search() {
         return;
     }
 
-    // If not a known center, try geocoding as postcode
+    // If not a known center, try geocoding
     searchError.innerHTML = '<div class="loading">Zoeken...</div>';
 
     try {
-        const response = await fetch(
+        // Try as postcode first
+        let response = await fetch(
             `https://nominatim.openstreetmap.org/search?postalcode=${searchTerm}&country=Belgium&format=json`
         );
-        const results = await response.json();
+        let results = await response.json();
+
+        // If no postcode match, try as municipality name
+        if (results.length === 0) {
+            response = await fetch(
+                `https://nominatim.openstreetmap.org/search?city=${searchTerm}&country=Belgium&format=json`
+            );
+            results = await response.json();
+        }
 
         if (results.length > 0) {
             const lat = parseFloat(results[0].lat);
