@@ -2,33 +2,61 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centrumkaart</title>
 
-<title>Centrumkaart</title>
+    <link rel="stylesheet"let@1.9.4/dist/leaflet.css
 
-://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
 
-<style>
-html, body {
-    margin: 0;
-    height: 100%;
-}
+        #map {
+            width: 100%;
+            height: 100%;
+        }
 
-#map {
-    width: 100%;
-    height: 100%;
-}
-</style>
-
+        .info-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.25);
+            min-width: 250px;
+        }
+    </style>
 </head>
+
 <body>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1flet.js
+<div class="info-box">
+    <h3>Dichtstbijzijnde centrum</h3>
+    <div id="result">
+        Klik ergens op de kaart
+    </div>
+</div>
+
+leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+
+const centers = [
+    { name: "LEUVEN", postcode: "3010", lat: 50.879, lng: 4.701 },
+    { name: "AALST", postcode: "9300", lat: 50.936, lng: 4.035 },
+    { name: "GENT", postcode: "9000", lat: 51.054, lng: 3.717 },
+    { name: "MECHELEN", postcode: "2800", lat: 51.025, lng: 4.477 },
+    { name: "GENK", postcode: "3600", lat: 50.965, lng: 5.500 },
+    { name: "ANTWERPEN", postcode: "2020", lat: 51.220, lng: 4.402 }
+];
 
 const map = L.map('map').setView([50.85, 4.6], 8);
 
@@ -39,9 +67,85 @@ L.tileLayer(
     }
 ).addTo(map);
 
-L.marker([50.879, 4.701])
-    .addTo(map)
-    .bindPopup('Leuven');
+centers.forEach(center => {
+    L.marker([center.lat, center.lng])
+        .addTo(map)
+        .bindPopup(`${center.name} (${center.postcode})`);
+});
+
+function distance(lat1, lon1, lat2, lon2) {
+
+    const R = 6371;
+
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+    );
+
+    return R * c;
+}
+
+let clickMarker = null;
+let routeLine = null;
+
+map.on('click', function(e) {
+
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    if (clickMarker) {
+        map.removeLayer(clickMarker);
+    }
+
+    if (routeLine) {
+        map.removeLayer(routeLine);
+    }
+
+    clickMarker = L.marker([lat, lng]).addTo(map);
+
+    let nearest = null;
+    let bestDistance = Number.MAX_VALUE;
+
+    centers.forEach(center => {
+
+        const d = distance(
+            lat,
+            lng,
+            center.lat,
+            center.lng
+        );
+
+        if (d < bestDistance) {
+            bestDistance = d;
+            nearest = center;
+        }
+
+    });
+
+    routeLine = L.polyline(
+        [
+            [lat, lng],
+            [nearest.lat, nearest.lng]
+        ],
+        { color: 'red' }
+    ).addTo(map);
+
+    document.getElementById("result").innerHTML = `
+        <strong>${nearest.name}</strong><br>
+        Postcode: ${nearest.postcode}<br>
+        Afstand: ${bestDistance.toFixed(1)} km
+    `;
+});
 
 </script>
 
