@@ -84,15 +84,15 @@
 <div id="map"></div>
 
 <div class="search-box">
-    <input type="text" id="postcodeInput" placeholder="Voer postcode in" />
-    <button onclick="searchPostcode()">Zoeken</button>
+    <input type="text" id="searchInput" placeholder="Postcode of gemeente" />
+    <button onclick="search()">Zoeken</button>
     <div id="searchError"></div>
 </div>
 
 <div class="info-box">
     <h3>Dichtstbijzijnde centrum</h3>
     <div id="result">
-        Klik ergens op de kaart of voer een postcode in
+        Klik ergens op de kaart of voer een postcode/gemeente in
     </div>
 </div>
 
@@ -227,23 +227,33 @@ map.on('click', function(e) {
     displayResult(lat, lng);
 });
 
-async function searchPostcode() {
-    const postcode = document.getElementById('postcodeInput').value.trim();
+async function search() {
+    const searchTerm = document.getElementById('searchInput').value.trim();
     const searchError = document.getElementById('searchError');
     searchError.innerHTML = '';
 
-    if (!postcode) {
-        searchError.innerHTML = '<div class="error">Voer een postcode in</div>';
+    if (!searchTerm) {
+        searchError.innerHTML = '<div class="error">Voer postcode of gemeente in</div>';
         return;
     }
 
-    // Show loading message
+    // Check if search term matches a center name (case-insensitive)
+    const foundCenter = centers.find(center => 
+        center.name.toUpperCase() === searchTerm.toUpperCase() || 
+        center.postcode === searchTerm
+    );
+
+    if (foundCenter) {
+        displayResult(foundCenter.lat, foundCenter.lng);
+        return;
+    }
+
+    // If not a known center, try geocoding as postcode
     searchError.innerHTML = '<div class="loading">Zoeken...</div>';
 
     try {
-        // Use Nominatim geocoding to convert postcode to coordinates
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?postalcode=${postcode}&country=Belgium&format=json`
+            `https://nominatim.openstreetmap.org/search?postalcode=${searchTerm}&country=Belgium&format=json`
         );
         const results = await response.json();
 
@@ -253,7 +263,7 @@ async function searchPostcode() {
             searchError.innerHTML = '';
             displayResult(lat, lng);
         } else {
-            searchError.innerHTML = '<div class="error">Postcode niet gevonden</div>';
+            searchError.innerHTML = '<div class="error">Niet gevonden</div>';
         }
     } catch (error) {
         searchError.innerHTML = '<div class="error">Fout bij zoeken</div>';
@@ -262,9 +272,9 @@ async function searchPostcode() {
 }
 
 // Allow Enter key to search
-document.getElementById('postcodeInput').addEventListener('keypress', function(e) {
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        searchPostcode();
+        search();
     }
 });
 
