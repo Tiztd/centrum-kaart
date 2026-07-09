@@ -7,7 +7,6 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
 
     <style>
         html, body {
@@ -261,7 +260,7 @@ centers.forEach(center => {
 // Load postcodes database on startup
 async function loadPostcodeDatabase() {
     try {
-        const response = await fetch('postcodes.csv');
+        const response = await fetch('https://raw.githubusercontent.com/Tiztd/centrum-kaart/main/postcodes.csv');
         const csv = await response.text();
         const lines = csv.split('\n');
         
