@@ -6,6 +6,7 @@
     <title>Centrumkaart</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 
     <style>
         html, body {
@@ -76,6 +77,93 @@
             font-size: 12px;
             margin-top: 5px;
         }
+
+        .success {
+            color: green;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .batch-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.25);
+            max-width: 300px;
+        }
+
+        .batch-box h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .batch-box input[type="file"] {
+            display: none;
+        }
+
+        .batch-box label {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .batch-box label:hover {
+            background-color: #218838;
+        }
+
+        .batch-box button {
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .batch-box button:hover {
+            background-color: #0056b3;
+        }
+
+        .batch-box button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .file-name {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 
@@ -94,6 +182,18 @@
     <div id="result">
         Klik ergens op de kaart of voer een postcode/gemeente in
     </div>
+</div>
+
+<div class="batch-box">
+    <h4>Batch verwerking</h4>
+    <label for="excelFile">Selecteer Excel file</label>
+    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
+    <div class="file-name" id="fileName"></div>
+    <button onclick="processBatch()" id="processBtn" disabled>Verwerk postcodes</button>
+    <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="batchStatus"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -296,6 +396,147 @@ document.getElementById('searchInput').addEventListener('keypress', function(e) 
         search();
     }
 });
+
+// Batch processing functions
+let selectedFile = null;
+
+document.getElementById('excelFile').addEventListener('change', function(e) {
+    selectedFile = e.target.files[0];
+    if (selectedFile) {
+        document.getElementById('fileName').textContent = 'Bestand: ' + selectedFile.name;
+        document.getElementById('processBtn').disabled = false;
+    }
+});
+
+async function processBatch() {
+    if (!selectedFile) return;
+
+    const batchStatus = document.getElementById('batchStatus');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const processBtn = document.getElementById('processBtn');
+
+    processBtn.disabled = true;
+    batchStatus.innerHTML = '<div class="loading">Bestand laden...</div>';
+    progressBar.style.display = 'block';
+
+    try {
+        const data = await selectedFile.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet);
+
+        if (rows.length === 0) {
+            batchStatus.innerHTML = '<div class="error">Geen data in bestand gevonden</div>';
+            processBtn.disabled = false;
+            return;
+        }
+
+        const results = [];
+        const total = rows.length;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const postcode = Object.values(row)[0]; // First column
+
+            if (!postcode || postcode === '') {
+                results.push({
+                    postcode: '',
+                    centrum: 'Leeg',
+                    afstand_km: '',
+                    status: 'Fout'
+                });
+            } else {
+                try {
+                    const coordinates = await geocodePostcode(postcode);
+                    
+                    if (coordinates) {
+                        const { nearest, distance: dist } = findNearestCenter(coordinates.lat, coordinates.lng);
+                        results.push({
+                            postcode: postcode,
+                            centrum: nearest.name,
+                            afstand_km: dist.toFixed(1),
+                            status: 'OK'
+                        });
+                    } else {
+                        results.push({
+                            postcode: postcode,
+                            centrum: 'Niet gevonden',
+                            afstand_km: '',
+                            status: 'Niet gevonden'
+                        });
+                    }
+                } catch (error) {
+                    results.push({
+                        postcode: postcode,
+                        centrum: 'Fout',
+                        afstand_km: '',
+                        status: 'Fout'
+                    });
+                }
+            }
+
+            // Update progress bar
+            const progress = ((i + 1) / total) * 100;
+            progressFill.style.width = progress + '%';
+            batchStatus.innerHTML = `<div class="loading">Verwerkt: ${i + 1}/${total}</div>`;
+
+            // Add delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Export to Excel
+        exportToExcel(results);
+        progressBar.style.display = 'none';
+        batchStatus.innerHTML = `<div class="success">Klaar! ${results.length} rijen verwerkt en gedownload.</div>`;
+        processBtn.disabled = false;
+
+    } catch (error) {
+        console.error('Error processing batch:', error);
+        batchStatus.innerHTML = '<div class="error">Fout bij verwerking: ' + error.message + '</div>';
+        progressBar.style.display = 'none';
+        processBtn.disabled = false;
+    }
+}
+
+async function geocodePostcode(postcode) {
+    try {
+        // Try postcode first
+        let response = await fetch(
+            `https://nominatim.openstreetmap.org/search?postalcode=${postcode}&country=Belgium&format=json`
+        );
+        let results = await response.json();
+
+        if (results.length > 0) {
+            return {
+                lat: parseFloat(results[0].lat),
+                lng: parseFloat(results[0].lon)
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Geocoding error for postcode ' + postcode, error);
+        return null;
+    }
+}
+
+function exportToExcel(results) {
+    const worksheet = XLSX.utils.json_to_sheet(results);
+    worksheet['!cols'] = [
+        { wch: 15 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 }
+    ];
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Resultaten');
+    
+    const fileName = 'centra_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    XLSX.writeFile(workbook, fileName);
+}
 
 </script>
 
