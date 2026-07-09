@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.4.1/papaparse.min.js"></script>
 
     <style>
         html, body {
@@ -230,6 +231,8 @@ const centers = [
     { name: "SINT-ANDRIES", postcode: "8200", lat: 51.197, lng: 3.177 }
 ];
 
+let postcodeDatabase = {}; // Will be loaded from CSV
+
 const map = L.map('map').setView([50.85, 4.6], 8);
 
 L.tileLayer(
@@ -254,6 +257,33 @@ centers.forEach(center => {
         .addTo(map)
         .bindPopup(`${center.name} (${center.postcode})`);
 });
+
+// Load postcodes database on startup
+async function loadPostcodeDatabase() {
+    try {
+        const response = await fetch('postcodes.csv');
+        const csv = await response.text();
+        const lines = csv.split('\n');
+        
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i].trim() === '') continue;
+            const [postcode, lat, lng, gemeente] = lines[i].split(',');
+            if (postcode && lat && lng) {
+                postcodeDatabase[postcode.trim()] = {
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng),
+                    gemeente: gemeente?.trim() || ''
+                };
+            }
+        }
+        console.log(`Loaded ${Object.keys(postcodeDatabase).length} postcodes`);
+    } catch (error) {
+        console.error('Failed to load postcode database:', error);
+    }
+}
+
+// Load database when page loads
+loadPostcodeDatabase();
 
 function distance(lat1, lon1, lat2, lon2) {
 
@@ -358,7 +388,13 @@ async function search() {
         return;
     }
 
-    // If not a known center, try geocoding
+    // Check local postcode database
+    if (postcodeDatabase[searchTerm]) {
+        displayResult(postcodeDatabase[searchTerm].lat, postcodeDatabase[searchTerm].lng);
+        return;
+    }
+
+    // If not a known postcode, try geocoding
     searchError.innerHTML = '<div class="loading">Zoeken...</div>';
 
     try {
@@ -456,7 +492,14 @@ async function processBatch() {
                 });
             } else {
                 try {
-                    const coordinates = await geocodePostcode(postcode);
+                    // First try local database
+                    let coordinates = null;
+                    if (postcodeDatabase[postcode]) {
+                        coordinates = postcodeDatabase[postcode];
+                    } else {
+                        // Fallback to geocoding
+                        coordinates = await geocodePostcode(postcode);
+                    }
                     
                     if (coordinates) {
                         const { nearest, distance: dist } = findNearestCenter(coordinates.lat, coordinates.lng);
@@ -490,8 +533,8 @@ async function processBatch() {
             progressFill.style.width = progress + '%';
             batchStatus.innerHTML = `<div class="loading">Verwerkt: ${i + 1}/${total}</div>`;
 
-            // Smaller delay for better performance
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Very small delay (local lookup is fast)
+            await new Promise(resolve => setTimeout(resolve, 10));
         }
 
         // Export to Excel
