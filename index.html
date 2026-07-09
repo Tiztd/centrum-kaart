@@ -6,7 +6,6 @@
     <title>Centrumkaart</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         html, body {
@@ -77,93 +76,6 @@
             font-size: 12px;
             margin-top: 5px;
         }
-
-        .success {
-            color: green;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        .batch-box {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.25);
-            max-width: 300px;
-        }
-
-        .batch-box h4 {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-
-        .batch-box input[type="file"] {
-            display: none;
-        }
-
-        .batch-box label {
-            display: inline-block;
-            padding: 8px 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .batch-box label:hover {
-            background-color: #218838;
-        }
-
-        .batch-box button {
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .batch-box button:hover {
-            background-color: #0056b3;
-        }
-
-        .batch-box button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        .file-name {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            margin-top: 10px;
-            overflow: hidden;
-            display: none;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background-color: #28a745;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
     </style>
 </head>
 
@@ -182,18 +94,6 @@
     <div id="result">
         Klik ergens op de kaart of voer een postcode/gemeente in
     </div>
-</div>
-
-<div class="batch-box">
-    <h4>Batch verwerking</h4>
-    <label for="excelFile">Selecteer Excel file</label>
-    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
-    <div class="file-name" id="fileName"></div>
-    <button onclick="processBatch()" id="processBtn" disabled>Verwerk postcodes</button>
-    <div class="progress-bar" id="progressBar">
-        <div class="progress-fill" id="progressFill"></div>
-    </div>
-    <div id="batchStatus"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -230,8 +130,6 @@ const centers = [
     { name: "SINT-ANDRIES", postcode: "8200", lat: 51.197, lng: 3.177 }
 ];
 
-let postcodeDatabase = {}; // Will be loaded from CSV
-
 const map = L.map('map').setView([50.85, 4.6], 8);
 
 L.tileLayer(
@@ -256,33 +154,6 @@ centers.forEach(center => {
         .addTo(map)
         .bindPopup(`${center.name} (${center.postcode})`);
 });
-
-// Load postcodes database on startup
-async function loadPostcodeDatabase() {
-    try {
-        const response = await fetch('https://raw.githubusercontent.com/Tiztd/centrum-kaart/main/postcodes.csv');
-        const csv = await response.text();
-        const lines = csv.split('\n');
-        
-        for (let i = 1; i < lines.length; i++) {
-            if (lines[i].trim() === '') continue;
-            const [postcode, lat, lng, gemeente] = lines[i].split(',');
-            if (postcode && lat && lng) {
-                postcodeDatabase[postcode.trim()] = {
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng),
-                    gemeente: gemeente?.trim() || ''
-                };
-            }
-        }
-        console.log(`Loaded ${Object.keys(postcodeDatabase).length} postcodes`);
-    } catch (error) {
-        console.error('Failed to load postcode database:', error);
-    }
-}
-
-// Load database when page loads
-loadPostcodeDatabase();
 
 function distance(lat1, lon1, lat2, lon2) {
 
@@ -387,13 +258,7 @@ async function search() {
         return;
     }
 
-    // Check local postcode database
-    if (postcodeDatabase[searchTerm]) {
-        displayResult(postcodeDatabase[searchTerm].lat, postcodeDatabase[searchTerm].lng);
-        return;
-    }
-
-    // If not a known postcode, try geocoding
+    // If not a known center, try geocoding
     searchError.innerHTML = '<div class="loading">Zoeken...</div>';
 
     try {
@@ -431,169 +296,6 @@ document.getElementById('searchInput').addEventListener('keypress', function(e) 
         search();
     }
 });
-
-// Batch processing functions
-let selectedFile = null;
-
-document.getElementById('excelFile').addEventListener('change', function(e) {
-    selectedFile = e.target.files[0];
-    if (selectedFile) {
-        document.getElementById('fileName').textContent = 'Bestand: ' + selectedFile.name;
-        document.getElementById('processBtn').disabled = false;
-    }
-});
-
-async function processBatch() {
-    if (!selectedFile) return;
-
-    // Check if XLSX is loaded
-    if (typeof XLSX === 'undefined') {
-        document.getElementById('batchStatus').innerHTML = '<div class="error">XLSX bibliotheek laadt nog... Probeer over enkele seconden opnieuw.</div>';
-        return;
-    }
-
-    const batchStatus = document.getElementById('batchStatus');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const processBtn = document.getElementById('processBtn');
-
-    processBtn.disabled = true;
-    batchStatus.innerHTML = '<div class="loading">Bestand laden...</div>';
-    progressBar.style.display = 'block';
-
-    try {
-        const data = await selectedFile.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
-
-        if (rows.length === 0) {
-            batchStatus.innerHTML = '<div class="error">Geen data in bestand gevonden</div>';
-            processBtn.disabled = false;
-            progressBar.style.display = 'none';
-            return;
-        }
-
-        const results = [];
-        const total = rows.length;
-
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const postcode = String(Object.values(row)[0]).trim(); // First column, convert to string
-
-            if (!postcode || postcode === '') {
-                results.push({
-                    postcode: '',
-                    centrum: 'Leeg',
-                    afstand_km: '',
-                    status: 'Fout'
-                });
-            } else {
-                try {
-                    // First try local database
-                    let coordinates = null;
-                    if (postcodeDatabase[postcode]) {
-                        coordinates = postcodeDatabase[postcode];
-                    } else {
-                        // Fallback to geocoding
-                        coordinates = await geocodePostcode(postcode);
-                    }
-                    
-                    if (coordinates) {
-                        const { nearest, distance: dist } = findNearestCenter(coordinates.lat, coordinates.lng);
-                        results.push({
-                            postcode: postcode,
-                            centrum: nearest.name,
-                            afstand_km: dist.toFixed(1),
-                            status: 'OK'
-                        });
-                    } else {
-                        results.push({
-                            postcode: postcode,
-                            centrum: 'Niet gevonden',
-                            afstand_km: '',
-                            status: 'Niet gevonden'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error processing postcode ' + postcode, error);
-                    results.push({
-                        postcode: postcode,
-                        centrum: 'Fout',
-                        afstand_km: '',
-                        status: 'Fout'
-                    });
-                }
-            }
-
-            // Update progress bar
-            const progress = ((i + 1) / total) * 100;
-            progressFill.style.width = progress + '%';
-            batchStatus.innerHTML = `<div class="loading">Verwerkt: ${i + 1}/${total}</div>`;
-
-            // Very small delay (local lookup is fast)
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-
-        // Export to Excel
-        exportToExcel(results);
-        progressBar.style.display = 'none';
-        batchStatus.innerHTML = `<div class="success">Klaar! ${results.length} rijen verwerkt en gedownload.</div>`;
-        processBtn.disabled = false;
-
-    } catch (error) {
-        console.error('Error processing batch:', error);
-        batchStatus.innerHTML = '<div class="error">Fout bij verwerking: ' + error.message + '</div>';
-        progressBar.style.display = 'none';
-        processBtn.disabled = false;
-    }
-}
-
-async function geocodePostcode(postcode) {
-    try {
-        // Add timeout to prevent hanging requests
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        // Try postcode first
-        let response = await fetch(
-            `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postcode)}&country=Belgium&format=json`,
-            { signal: controller.signal }
-        );
-        let results = await response.json();
-
-        if (results.length > 0) {
-            clearTimeout(timeoutId);
-            return {
-                lat: parseFloat(results[0].lat),
-                lng: parseFloat(results[0].lon)
-            };
-        }
-
-        clearTimeout(timeoutId);
-        return null;
-    } catch (error) {
-        console.error('Geocoding error for postcode ' + postcode, error);
-        return null;
-    }
-}
-
-function exportToExcel(results) {
-    const worksheet = XLSX.utils.json_to_sheet(results);
-    worksheet['!cols'] = [
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 15 }
-    ];
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Resultaten');
-    
-    const fileName = 'centra_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-    XLSX.writeFile(workbook, fileName);
-}
 
 </script>
 
