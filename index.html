@@ -6,6 +6,7 @@
     <title>Centrumkaart</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         html, body {
@@ -196,7 +197,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 
@@ -410,6 +410,12 @@ document.getElementById('excelFile').addEventListener('change', function(e) {
 
 async function processBatch() {
     if (!selectedFile) return;
+
+    // Check if XLSX is loaded
+    if (typeof XLSX === 'undefined') {
+        document.getElementById('batchStatus').innerHTML = '<div class="error">XLSX bibliotheek laadt nog... Probeer over enkele seconden opnieuw.</div>';
+        return;
+    }
 
     const batchStatus = document.getElementById('batchStatus');
     const progressBar = document.getElementById('progressBar');
