@@ -445,7 +445,7 @@ async function processBatch() {
 
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            const postcode = Object.values(row)[0]; // First column
+            const postcode = String(Object.values(row)[0]).trim(); // First column, convert to string
 
             if (!postcode || postcode === '') {
                 results.push({
@@ -475,6 +475,7 @@ async function processBatch() {
                         });
                     }
                 } catch (error) {
+                    console.error('Error processing postcode ' + postcode, error);
                     results.push({
                         postcode: postcode,
                         centrum: 'Fout',
@@ -489,8 +490,8 @@ async function processBatch() {
             progressFill.style.width = progress + '%';
             batchStatus.innerHTML = `<div class="loading">Verwerkt: ${i + 1}/${total}</div>`;
 
-            // Add delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Smaller delay for better performance
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         // Export to Excel
@@ -509,19 +510,26 @@ async function processBatch() {
 
 async function geocodePostcode(postcode) {
     try {
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         // Try postcode first
         let response = await fetch(
-            `https://nominatim.openstreetmap.org/search?postalcode=${postcode}&country=Belgium&format=json`
+            `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postcode)}&country=Belgium&format=json`,
+            { signal: controller.signal }
         );
         let results = await response.json();
 
         if (results.length > 0) {
+            clearTimeout(timeoutId);
             return {
                 lat: parseFloat(results[0].lat),
                 lng: parseFloat(results[0].lon)
             };
         }
 
+        clearTimeout(timeoutId);
         return null;
     } catch (error) {
         console.error('Geocoding error for postcode ' + postcode, error);
