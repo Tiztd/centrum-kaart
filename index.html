@@ -6,7 +6,6 @@
     <title>Centrumkaart</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 
     <style>
         html, body {
@@ -197,6 +196,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 
@@ -430,6 +430,7 @@ async function processBatch() {
         if (rows.length === 0) {
             batchStatus.innerHTML = '<div class="error">Geen data in bestand gevonden</div>';
             processBtn.disabled = false;
+            progressBar.style.display = 'none';
             return;
         }
 
