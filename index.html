@@ -29,6 +29,8 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.25);
             min-width: 250px;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .search-box {
@@ -76,6 +78,39 @@
             font-size: 12px;
             margin-top: 5px;
         }
+
+        .center-item {
+            padding: 8px;
+            margin: 8px 0;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+
+        .center-item strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .center-item small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .center-rank {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -90,7 +125,7 @@
 </div>
 
 <div class="info-box">
-    <h3>Dichtstbijzijnde centrum</h3>
+    <h3>Top 3 dichtstbijzijnde centra</h3>
     <div id="result">
         Klik ergens op de kaart of voer een postcode/gemeente in
     </div>
@@ -140,7 +175,6 @@ L.tileLayer(
     }
 ).addTo(map);
 
-// Green marker icon for search location
 const greenIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -157,9 +191,7 @@ centers.forEach(center => {
 });
 
 function distance(lat1, lon1, lat2, lon2) {
-
     const R = 6371;
-
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
 
@@ -179,27 +211,16 @@ function distance(lat1, lon1, lat2, lon2) {
 }
 
 let clickMarker = null;
-let routeLine = null;
+let routeLines = [];
 
-function findNearestCenter(lat, lng) {
-    let nearest = null;
-    let bestDistance = Number.MAX_VALUE;
-
-    centers.forEach(center => {
-        const d = distance(
-            lat,
-            lng,
-            center.lat,
-            center.lng
-        );
-
-        if (d < bestDistance) {
-            bestDistance = d;
-            nearest = center;
-        }
-    });
-
-    return { nearest, distance: bestDistance };
+function findNearestCenters(lat, lng, count = 3) {
+    return centers
+        .map(center => ({
+            center,
+            distance: distance(lat, lng, center.lat, center.lng)
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, count);
 }
 
 function displayResult(lat, lng) {
@@ -207,28 +228,39 @@ function displayResult(lat, lng) {
         map.removeLayer(clickMarker);
     }
 
-    if (routeLine) {
-        map.removeLayer(routeLine);
-    }
+    routeLines.forEach(line => map.removeLayer(line));
+    routeLines = [];
 
     clickMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map);
 
-    const { nearest, distance: bestDistance } = findNearestCenter(lat, lng);
+    const nearestCenters = findNearestCenters(lat, lng, 3);
 
-    routeLine = L.polyline(
-        [
-            [lat, lng],
-            [nearest.lat, nearest.lng]
-        ],
-        { color: 'red' }
-    ).addTo(map);
+    let resultHTML = '';
+    nearestCenters.forEach((item, index) => {
+        resultHTML += `
+            <div class="center-item">
+                <span class="center-rank">${index + 1}</span>
+                <strong>${item.center.name}</strong>
+                <small>Postcode: ${item.center.postcode}</small>
+                <small>Afstand: ${item.distance.toFixed(1)} km</small>
+            </div>
+        `;
 
-    document.getElementById("result").innerHTML = `
-        <strong>${nearest.name}</strong><br>
-        Postcode: ${nearest.postcode}<br>
-        Afstand: ${bestDistance.toFixed(1)} km
-    `;
+        const routeLine = L.polyline(
+            [
+                [lat, lng],
+                [item.center.lat, item.center.lng]
+            ],
+            {
+                color: ['red', 'orange', '#d4a017'][index],
+                weight: 2,
+                opacity: 0.7
+            }
+        ).addTo(map);
+        routeLines.push(routeLine);
+    });
 
+    document.getElementById("result").innerHTML = resultHTML;
     map.setView([lat, lng], 10);
 }
 
@@ -248,9 +280,8 @@ async function search() {
         return;
     }
 
-    // Check if search term matches a center name (case-insensitive)
-    const foundCenter = centers.find(center => 
-        center.name.toUpperCase() === searchTerm.toUpperCase() || 
+    const foundCenter = centers.find(center =>
+        center.name.toUpperCase() === searchTerm.toUpperCase() ||
         center.postcode === searchTerm
     );
 
@@ -259,17 +290,14 @@ async function search() {
         return;
     }
 
-    // If not a known center, try geocoding
     searchError.innerHTML = '<div class="loading">Zoeken...</div>';
 
     try {
-        // Try as postcode first
         let response = await fetch(
             `https://nominatim.openstreetmap.org/search?postalcode=${searchTerm}&country=Belgium&format=json`
         );
         let results = await response.json();
 
-        // If no postcode match, try as municipality name
         if (results.length === 0) {
             response = await fetch(
                 `https://nominatim.openstreetmap.org/search?city=${searchTerm}&country=Belgium&format=json`
@@ -291,7 +319,6 @@ async function search() {
     }
 }
 
-// Allow Enter key to search
 document.getElementById('searchInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         search();
