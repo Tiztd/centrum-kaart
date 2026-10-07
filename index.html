@@ -59,7 +59,7 @@
         .search-box button {
             padding: 8px 12px;
             margin-left: 5px;
-            background-color: #007bff;
+            background-color: #000000;
             color: white;
             border: none;
             border-radius: 4px;
@@ -68,7 +68,7 @@
         }
 
         .search-box button:hover {
-            background-color: #0056b3;
+            background-color: #333333;
         }
 
         .error {
@@ -86,21 +86,24 @@
         .center-item {
             padding: 8px;
             margin: 8px 0;
-            background-color: #f9f9f9;
-            border-left: 4px solid #007bff;
+            background-color: #F6C9DD;
+            border-left: 4px solid #000000;
             border-radius: 4px;
         }
 
         .center-item.rank-1 {
-            border-left-color: #AB0000;
+            background-color: #F6C9DD;
+            border-left-color: #C76A95;
         }
 
         .center-item.rank-2 {
-            border-left-color: #000000;
+            background-color: #F6C9DD;
+            border-left-color: #E8A9C7;
         }
 
         .center-item.rank-3 {
-            border-left-color: #666666;
+            background-color: #F6C9DD;
+            border-left-color: #F6C9DD;
         }
 
         .center-item strong {
@@ -116,7 +119,7 @@
 
         .center-rank {
             display: inline-block;
-            background-color: #007bff;
+            background-color: #000000;
             color: white;
             width: 24px;
             height: 24px;
@@ -129,15 +132,16 @@
         }
 
         .center-item.rank-1 .center-rank {
-            background-color: #AB0000;
+            background-color: #C76A95;
         }
 
         .center-item.rank-2 .center-rank {
-            background-color: #000000;
+            background-color: #E8A9C7;
         }
 
         .center-item.rank-3 .center-rank {
-            background-color: #666666;
+            background-color: #F6C9DD;
+            color: #666;
         }
     </style>
 </head>
@@ -204,7 +208,7 @@ L.tileLayer(
 ).addTo(map);
 
 const greenIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-teal.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -262,7 +266,7 @@ function displayResult(lat, lng) {
     clickMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map);
 
     const nearestCenters = findNearestCenters(lat, lng, 3);
-    const colors = ['#AB0000', '#000000', '#666666'];
+    const colors = ['#C76A95', '#E8A9C7', '#F6C9DD'];
 
     let resultHTML = '';
     nearestCenters.forEach((item, index) => {
