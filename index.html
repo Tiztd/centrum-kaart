@@ -17,16 +17,10 @@
         #map {
             width: 100%;
             height: 100%;
-            position: relative;
         }
 
-        #map-overlay {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 400;
-            background: rgba(255, 255, 255, 0.25);
-            mix-blend-mode: multiply;
+        .leaflet-tile-pane img {
+            filter: brightness(1.1) contrast(0.9) saturate(0.7);
         }
 
         .info-box {
@@ -151,7 +145,6 @@
 <body>
 
 <div id="map"></div>
-<div id="map-overlay"></div>
 
 <div class="search-box">
     <input type="text" id="searchInput" placeholder="Postcode of gemeente" />
