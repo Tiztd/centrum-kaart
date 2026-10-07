@@ -192,12 +192,12 @@ const centers = [
 
 const map = L.map('map').setView([50.85, 4.6], 8);
 
-    L.tileLayer(
-        'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     {
-        attribution: '&copy; Stadia Maps &copy; OpenStreetMap'
+        attribution: '&copy; OpenStreetMap'
     }
-    ).addTo(map);
+).addTo(map);
 
 const greenIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
