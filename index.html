@@ -86,23 +86,23 @@
         .center-item {
             padding: 8px;
             margin: 8px 0;
-            background-color: #F6C9DD;
+            background-color: white;
             border-left: 4px solid #000000;
             border-radius: 4px;
         }
 
         .center-item.rank-1 {
-            background-color: #F6C9DD;
+            background-color: white;
             border-left-color: #C76A95;
         }
 
         .center-item.rank-2 {
-            background-color: #F6C9DD;
+            background-color: white;
             border-left-color: #E8A9C7;
         }
 
         .center-item.rank-3 {
-            background-color: #F6C9DD;
+            background-color: white;
             border-left-color: #F6C9DD;
         }
 
@@ -207,8 +207,19 @@ L.tileLayer(
     }
 ).addTo(map);
 
-const greenIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-teal.png',
+// Black marker for static centers
+const blackIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Teal marker for selected location
+const tealIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-0B7285.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -217,7 +228,7 @@ const greenIcon = L.icon({
 });
 
 centers.forEach(center => {
-    L.marker([center.lat, center.lng])
+    L.marker([center.lat, center.lng], { icon: blackIcon })
         .addTo(map)
         .bindPopup(`${center.name} (${center.postcode})`);
 });
@@ -263,7 +274,7 @@ function displayResult(lat, lng) {
     routeLines.forEach(line => map.removeLayer(line));
     routeLines = [];
 
-    clickMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map);
+    clickMarker = L.marker([lat, lng], { icon: tealIcon }).addTo(map);
 
     const nearestCenters = findNearestCenters(lat, lng, 3);
     const colors = ['#C76A95', '#E8A9C7', '#F6C9DD'];
