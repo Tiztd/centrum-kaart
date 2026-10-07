@@ -132,15 +132,15 @@
         }
 
         .center-item.rank-1 .center-rank {
-            background-color: #C43D7A;
+            background-color: #005F73;
         }
 
         .center-item.rank-2 .center-rank {
-            background-color: #D85A95;
+            background-color: #0A9396;
         }
 
         .center-item.rank-3 .center-rank {
-            background-color: #EC88B7;
+            background-color: #48CAE4;
        }
     </style>
 </head>
@@ -218,7 +218,7 @@ const blackIcon = L.icon({
 
 // Teal marker for selected location
 const tealIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-Gold.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -276,7 +276,7 @@ function displayResult(lat, lng) {
     clickMarker = L.marker([lat, lng], { icon: tealIcon }).addTo(map);
 
     const nearestCenters = findNearestCenters(lat, lng, 3);
-    const colors = ['#C43D7A', '#D85A95', '#EC88B7'];
+    const colors = ['#005F73', '#0A9396', '#48CAE4'];
 
     let resultHTML = '';
     nearestCenters.forEach((item, index) => {
