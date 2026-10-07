@@ -192,12 +192,12 @@ const centers = [
 
 const map = L.map('map').setView([50.85, 4.6], 8);
 
-L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    {
-        attribution: 'Tiles &copy; Esri'
-    }
-).addTo(map);
+    L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        {
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+        }
+    ).addTo(map);
 
 const greenIcon = L.icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
