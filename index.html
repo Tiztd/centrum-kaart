@@ -129,11 +129,11 @@
         }
 
         .center-item.rank-2 .center-rank {
-            background-color: #666666;
+            background-color: #333333;
         }
 
         .center-item.rank-3 .center-rank {
-            background-color: #808080;
+            background-color: #666666;
         }
     </style>
 </head>
@@ -258,7 +258,7 @@ function displayResult(lat, lng) {
     clickMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map);
 
     const nearestCenters = findNearestCenters(lat, lng, 3);
-    const colors = ['#000000', '#666666', '#808080'];
+    const colors = ['#000000', '#333333', '#666666'];
 
     let resultHTML = '';
     nearestCenters.forEach((item, index) => {
