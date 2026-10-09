@@ -93,17 +93,17 @@
 
         .center-item.rank-1 {
             background-color: white;
-            border-left-color: #FF8F00;
+            border-left-color: #FFB300;
         }
 
         .center-item.rank-2 {
             background-color: white;
-            border-left-color: #2962FF;
+            border-left-color: #FB8C00;
         }
 
         .center-item.rank-3 {
             background-color: white;
-            border-left-color: #6A00FF;
+            border-left-color: #E65100;
         }
 
         .center-item strong {
@@ -132,15 +132,15 @@
         }
 
         .center-item.rank-1 .center-rank {
-            background-color: #FF8F00;
+            background-color: #FFB300;
         }
 
         .center-item.rank-2 .center-rank {
-            background-color: #2962FF;
+            background-color: #FB8C00;
         }
 
         .center-item.rank-3 .center-rank {
-            background-color: #6A00FF;
+            background-color: #E65100;
        }
     </style>
 </head>
@@ -276,7 +276,7 @@ function displayResult(lat, lng) {
     clickMarker = L.marker([lat, lng], { icon: tealIcon }).addTo(map);
 
     const nearestCenters = findNearestCenters(lat, lng, 3);
-    const colors = ['#FF8F00', '#2962FF', '#6A00FF'];
+    const colors = ['#FFB300', '#FB8C00', '#E65100'];
 
     let resultHTML = '';
     nearestCenters.forEach((item, index) => {
